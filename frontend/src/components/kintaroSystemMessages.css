@@ -1,0 +1,40 @@
+.kintaro-error-message-1 {
+    display: flex;
+    gap: var(--kintaro-gap-xs);
+    align-items: center;
+    background-color: rgba(255, 0, 0, 0.1);
+    border-radius: var(--kintaro-border-radius-1);
+    padding: 1rem;
+   
+}
+
+.kintaro-error-message-1-icon {
+    color: var(--kintaro-error-color);
+    font-size: var(--kintaro-font-xl);
+}
+
+.kintaro-error-message-1-text {
+    color: var(--kintaro-error-color);
+    font-size: var(--kintaro-font-md);
+}
+
+
+.kintaro-success-message-1 {
+    display: flex;
+    gap: var(--kintaro-gap-xs);
+    align-items: center;
+    background-color: rgba(0, 200, 80, 0.1);
+    border-radius: var(--kintaro-border-radius-1);
+    padding: 1rem;
+    
+}
+
+.kintaro-success-message-1-icon {
+    color: var(--kintaro-success-color);
+    font-size: var(--kintaro-font-xl);
+}
+
+.kintaro-success-message-1-text {
+    color: var(--kintaro-success-color);
+    font-size: var(--kintaro-font-md);
+}

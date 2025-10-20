@@ -1,0 +1,30 @@
+.kintaro-xahzy {
+  width: 100%;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.kintaro-plmvu {
+  width: 200px;
+  height: auto;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+.kintaro-qwert,
+.kintaro-bnzkt {
+  padding: 0 1rem;
+  user-select: none;
+  color: var(--kintaro-text-color-1);
+  text-align: center;
+  text-shadow: var(--kintaro-text-shadow);
+  font-size: var(--kintaro-font-md);
+}
+
+.kintaro-bnzkt {
+  color: var(--kintaro-text-color-2);
+}
