@@ -1,0 +1,1 @@
+projeyi kullanabilmek için sistemizde nodejs kurulu olmalıdır. ve ilk çalıştırmadan önce frontend ve backend dizinlerine girip her ikisi için de "npm install" komutunu çalıştırıp gerekli paketleri yüklemelisiniz.
