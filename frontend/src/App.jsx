@@ -377,7 +377,7 @@ function App() {
         />
       </div>
 
-      <main className="relative z-10 w-full max-w-[1600px] mx-auto p-4 sm:p-8 lg:p-20 flex flex-col justify-center gap-10">
+      <main className="relative z-10 w-full max-w-[1660px] mx-auto p-4 sm:p-8 lg:p-20 flex flex-col justify-center gap-10">
 
         <motion.div
           className="sm:min-h-[70dvh] flex flex-col lg:flex-row lg:items-center lg:gap-16 gap-10 justify-center max-sm:pt-4"
@@ -398,7 +398,7 @@ function App() {
                 />
               </motion.div>
 
-              <motion.h1 variants={fadeUp} className="font-display text-4xl sm:leading-[0.9] md:text-7xl lg:text-[5rem] xl:text-[6rem] font-bold tracking-tighter uppercase text-wrap">
+              <motion.h1 variants={fadeUp} className="font-display text-2xl sm:text-3xl md:text-4xl 2xl:text-7xl sm:leading-[0.9] font-bold tracking-tighter uppercase text-wrap">
                 Kintaro<br />
                 <span className="text-transparent" style={{ WebkitTextStroke: '1px var(--color-fg-muted)' }}>Downloader</span>
               </motion.h1>
@@ -542,7 +542,7 @@ function App() {
               </div>
               <div>
                 <div className="flex items-center gap-3">
-                  <h3 className="font-display text-xl font-bold uppercase tracking-tight text-fg-base">Local_Archive</h3>
+                  <h3 className="font-display sm:text-lg font-bold uppercase tracking-tight text-fg-base">Archive</h3>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
                     <span className="text-[10px] text-accent font-bold tracking-widest uppercase">Active</span>
