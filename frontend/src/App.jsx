@@ -398,7 +398,7 @@ function App() {
                 />
               </motion.div>
 
-              <motion.h1 variants={fadeUp} className="font-display text-2xl sm:text-3xl md:text-4xl 2xl:text-7xl sm:leading-[0.9] font-bold tracking-tighter uppercase text-wrap">
+              <motion.h1 variants={fadeUp} className="font-display text-2xl sm:text-3xl md:text-4xl 2xl:text-5xl sm:leading-[0.9] font-bold tracking-tighter uppercase text-wrap">
                 Kintaro<br />
                 <span className="text-transparent" style={{ WebkitTextStroke: '1px var(--color-fg-muted)' }}>Downloader</span>
               </motion.h1>
