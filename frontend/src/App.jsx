@@ -377,7 +377,7 @@ function App() {
         />
       </div>
 
-      <main className="relative z-10 w-full max-w-[1660px] mx-auto p-4 sm:p-8 lg:p-20 flex flex-col justify-center gap-10">
+      <main className="relative z-10 w-full max-w-[1440px] mx-auto p-4 sm:p-8 lg:p-20 flex flex-col justify-center gap-10">
 
         <motion.div
           className="sm:min-h-[70dvh] flex flex-col lg:flex-row lg:items-center lg:gap-16 gap-10 justify-center max-sm:pt-4"
