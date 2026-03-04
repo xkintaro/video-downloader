@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap');
+
+@theme {
+  --color-bg-base: #050505;
+  --color-bg-surface: #111111;
+  --color-bg-hover: #1a1a1a;
+
+  --color-fg-base: #f4f4f5;
+  --color-fg-muted: #71717a;
+
+  --color-accent: #00ff88;
+  --color-accent-hover: #00e67a;
+  --color-accent-transparent: rgba(0, 255, 136, 0.1);
+
+  --color-border: #27272a;
+
+  --color-error: #ff3366;
+  --color-error-hover: #e62e5c;
+  --color-error-transparent: rgba(255, 51, 102, 0.1);
+
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Space Mono', monospace;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-fg-base);
+  font-family: var(--font-mono);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-display {
+  font-family: var(--font-display);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+  border-left: 1px solid var(--color-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-fg-muted);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes orbital-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-120px) translateX(20px);
+    opacity: 0;
+  }
+}
+
+@keyframes float-down {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.6;
+  }
+
+  80% {
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: translateY(80px) translateX(-15px);
+    opacity: 0;
+  }
+}
+
+@keyframes dash-move {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+@keyframes data-flicker {
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 25s linear infinite;
+}
+
+.animate-spin-slower {
+  animation: spin-slow 40s linear infinite;
+}
+
+.animate-spin-reverse {
+  animation: spin-reverse 30s linear infinite;
+}
+
+.animate-orbital-pulse {
+  animation: orbital-pulse 3s ease-in-out infinite;
+}
+
+.animate-float-up {
+  animation: float-up 4s ease-in-out infinite;
+}
+
+.animate-float-down {
+  animation: float-down 5s ease-in-out infinite;
+}
+
+.animate-dash-move {
+  animation: dash-move 20s linear infinite;
+}
+
+.animate-data-flicker {
+  animation: data-flicker 2s ease-in-out infinite;
+}
