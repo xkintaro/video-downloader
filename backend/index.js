@@ -68,7 +68,16 @@ app.post('/download', async (req, res) => {
     const options = {
       output: filepath,
       format: 'best',
-      restrictFilenames: true
+      restrictFilenames: true,
+      noCacheDir: true,
+      noWarnings: true,
+      noCheckCertificates: true,
+      socketTimeout: 30,
+      addHeader: [
+        'referer:google.com',
+        'Accept-Language:en-US,en;q=0.9',
+        'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+      ]
     };
 
     await ytdl(url, options);
