@@ -53,52 +53,160 @@ const updateYtdl = async () => {
   await updateYtdl();
 })();
 
-app.post('/download', async (req, res) => {
+const activeJobs = new Map();
+
+app.post('/download', (req, res) => {
+  const { url } = req.body;
+  if (!url) {
+    return res.status(400).json({ error: 'URL cannot be empty' });
+  }
+
+  const jobId = Math.random().toString(36).substring(2, 15);
+  const timestamp = Date.now();
+  const filename = sanitizeFilename(`kintaro_downloader_${timestamp}.mp4`);
+  const filepath = path.join(DOWNLOAD_DIR, filename);
+
+  const options = {
+    output: filepath,
+    format: 'best',
+    restrictFilenames: true,
+    noCacheDir: true,
+    noWarnings: true,
+    noCheckCertificates: true,
+    socketTimeout: 30,
+    addHeader: [
+      'referer:google.com',
+      'Accept-Language:en-US,en;q=0.9',
+      'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+    ]
+  };
+
   try {
-    const { url } = req.body;
+    const subprocess = ytdl.exec(url, options);
 
-    if (!url) {
-      return res.status(400).json({ error: 'URL cannot be empty' });
-    }
-
-    const timestamp = Date.now();
-    const filename = sanitizeFilename(`kintaro_downloader_${timestamp}.mp4`);
-    const filepath = path.join(DOWNLOAD_DIR, filename);
-
-    const options = {
-      output: filepath,
-      format: 'best',
-      restrictFilenames: true,
-      noCacheDir: true,
-      noWarnings: true,
-      noCheckCertificates: true,
-      socketTimeout: 30,
-      addHeader: [
-        'referer:google.com',
-        'Accept-Language:en-US,en;q=0.9',
-        'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-      ]
-    };
-
-    await ytdl(url, options);
-
-    if (!fsSync.existsSync(filepath)) {
-      throw new Error('Downloaded file not found');
-    }
-
-    return res.json({
-      success: true,
-      downloadUrl: `/downloads/${encodeURIComponent(filename)}`,
-      filename
+    activeJobs.set(jobId, {
+      subprocess,
+      progress: 0,
+      status: 'starting',
+      filename,
+      filepath,
+      res: null
     });
 
+    subprocess.stdout.on('data', (data) => {
+      const output = data.toString();
+      const match = output.match(/\[download\]\s+([\d.]+)%/);
+      if (match) {
+        const prog = parseFloat(match[1]);
+        const job = activeJobs.get(jobId);
+        if (job) {
+          job.progress = prog;
+          job.status = 'downloading';
+          if (job.res) {
+            job.res.write(`data: ${JSON.stringify({ progress: prog, status: 'downloading' })}\n\n`);
+          }
+        }
+      }
+    });
+
+    subprocess.on('close', (code) => {
+      const job = activeJobs.get(jobId);
+      if (job) {
+        if (code === 0) {
+          job.status = 'completed';
+          if (job.res) {
+            job.res.write(`data: ${JSON.stringify({ 
+              status: 'completed', 
+              filename: job.filename, 
+              downloadUrl: `/downloads/${encodeURIComponent(job.filename)}` 
+            })}\n\n`);
+            job.res.end();
+          }
+        } else if (job.status !== 'cancelled') {
+          job.status = 'error';
+          if (job.res) {
+            job.res.write(`data: ${JSON.stringify({ status: 'error', error: 'Download failed or unsupported URL' })}\n\n`);
+            job.res.end();
+          }
+        }
+        activeJobs.delete(jobId);
+      }
+    });
+
+    subprocess.on('error', (err) => {
+      const job = activeJobs.get(jobId);
+      if (job) {
+        job.status = 'error';
+        if (job.res) {
+           job.res.write(`data: ${JSON.stringify({ status: 'error', error: err.message })}\n\n`);
+           job.res.end();
+        }
+        activeJobs.delete(jobId);
+      }
+    });
+
+    return res.json({ jobId });
   } catch (error) {
-    console.error('Download error:', error);
+    console.error('Download start error:', error);
     return res.status(500).json({
-      error: 'Video download failed',
+      error: 'Video download initialization failed',
       details: error.message
     });
   }
+});
+
+app.get('/download/progress/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  const job = activeJobs.get(jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  job.res = res;
+  res.write(`data: ${JSON.stringify({ progress: job.progress, status: job.status })}\n\n`);
+
+  req.on('close', () => {
+    if (job && job.res === res) {
+      job.res = null;
+    }
+  });
+});
+
+app.post('/download/cancel/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  const job = activeJobs.get(jobId);
+
+  if (job) {
+    job.status = 'cancelled';
+    if (job.res) {
+      job.res.write(`data: ${JSON.stringify({ status: 'cancelled' })}\n\n`);
+      job.res.end();
+    }
+    try {
+      if (job.subprocess.pid) {
+        job.subprocess.kill();
+      }
+    } catch (e) {
+      console.error('Error killing process', e);
+    }
+    
+    setTimeout(() => {
+      if (fsSync.existsSync(job.filepath)) {
+        try { fsSync.unlinkSync(job.filepath); } catch(e) {}
+      }
+    }, 1000);
+    
+    activeJobs.delete(jobId);
+    return res.json({ success: true });
+  }
+
+  return res.status(404).json({ error: 'Job not found' });
 });
 
 app.get('/downloads', async (req, res) => {

@@ -256,9 +256,13 @@ function App() {
   const [fileToDelete, setFileToDelete] = useState(null);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [activeJobId, setActiveJobId] = useState(null);
+  const [isCancelled, setIsCancelled] = useState(false);
+
   const archiveSectionRef = useRef(null);
   const dividerRef = useRef(null);
-  const archiveInView = useInView(archiveSectionRef, { once: true, margin: '-80px' });
+  const archiveInView = useInView(archiveSectionRef, { once: true, margin: '-60px' });
   const dividerInView = useInView(dividerRef, { once: true, margin: '-40px' });
 
   const fetchDownloads = async () => {
@@ -279,6 +283,8 @@ function App() {
     e.preventDefault();
     setError('');
     setDownloadInfo(null);
+    setDownloadProgress(0);
+    setIsCancelled(false);
 
     if (!url) {
       setError('PLEASE ENTER A VIDEO URL');
@@ -287,30 +293,69 @@ function App() {
 
     try {
       setLoading(true);
-      const infoResponse = await axios.post('/download', { url });
-      setDownloadInfo(infoResponse.data);
+      const res = await axios.post('/download', { url });
+      const { jobId } = res.data;
+      setActiveJobId(jobId);
 
-      const fileResponse = await axios.get(infoResponse.data.downloadUrl, {
-        responseType: 'blob'
-      });
+      const eventSource = new EventSource(`/download/progress/${jobId}`);
 
-      const blob = new Blob([fileResponse.data], { type: 'video/mp4' });
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.setAttribute('download', infoResponse.data.filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
 
-      fetchDownloads();
-      setUrl('');
+        if (data.status === 'downloading') {
+          setDownloadProgress(data.progress || 0);
+        } else if (data.status === 'completed') {
+          eventSource.close();
+          setActiveJobId(null);
+          setLoading(false);
+          setDownloadProgress(100);
+          setDownloadInfo({ filename: data.filename });
+
+          const link = document.createElement('a');
+          link.href = data.downloadUrl;
+          link.setAttribute('download', data.filename);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          fetchDownloads();
+          setUrl('');
+        } else if (data.status === 'error') {
+          eventSource.close();
+          setActiveJobId(null);
+          setLoading(false);
+          setError(data.error || 'VIDEO DOWNLOAD PROCESS FAILED');
+        } else if (data.status === 'cancelled') {
+          eventSource.close();
+          setActiveJobId(null);
+          setLoading(false);
+          setError('DOWNLOAD CANCELLED BY USER');
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setActiveJobId(null);
+        setLoading(false);
+        setError('CONNECTION TO SERVER LOST');
+      };
+
     } catch (err) {
-      console.error('Download error:', err);
-      setError(err.response?.data?.error || 'VIDEO DOWNLOAD PROCESS FAILED');
-    } finally {
+      console.error('Download init error:', err);
+      setError(err.response?.data?.error || 'FAILED TO INITIALIZE DOWNLOAD');
       setLoading(false);
+      setActiveJobId(null);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (activeJobId) {
+      try {
+        await axios.post(`/download/cancel/${activeJobId}`);
+        setIsCancelled(true);
+      } catch (err) {
+        console.error('Failed to cancel:', err);
+      }
     }
   };
 
@@ -424,7 +469,7 @@ function App() {
                   <motion.button
                     type="submit"
                     disabled={loading}
-                    className="bg-accent text-bg-base font-bold uppercase tracking-wider px-8 py-4 sm:py-0 rounded-lg hover:bg-accent-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="bg-accent text-bg-base cursor-pointer font-bold uppercase tracking-wider px-8 py-4 sm:py-0 rounded-lg hover:bg-accent-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <>
@@ -439,6 +484,33 @@ function App() {
                     )}
                   </motion.button>
                 </motion.div>
+
+                {activeJobId && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="w-full flex flex-col gap-2 mt-4"
+                  >
+                    <div className="flex justify-between items-center text-xs font-bold font-mono text-accent uppercase tracking-widest">
+                      <span>{downloadProgress.toFixed(1)}%</span>
+                      <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="text-error hover:text-error/80 underline underline-offset-4 transition-colors cursor-pointer"
+                      >
+                        Cancel / Abort
+                      </button>
+                    </div>
+                    <div className="w-full h-2 bg-bg-surface/80 rounded-full overflow-hidden border border-border">
+                      <motion.div
+                        className="h-full bg-accent"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${downloadProgress}%` }}
+                        transition={{ ease: "linear", duration: 0.5 }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
               </div>
 
               <motion.div variants={fadeUp} className="flex items-center gap-3 text-accent text-sm tracking-[0.2em] font-bold uppercase w-full mt-2">
@@ -531,7 +603,7 @@ function App() {
           ref={archiveSectionRef}
           initial={{ opacity: 0, y: 60, filter: 'blur(10px)' }}
           animate={archiveInView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
-          transition={{ duration: 0.9, ease: [0.25, 0.4, 0.25, 1], delay: 0.8 }}
+          transition={{ duration: 0.9, ease: [0.25, 0.4, 0.25, 1], delay: 0.6 }}
           className="border border-border rounded-2xl flex flex-col min-h-[350px] max-h-[600px] overflow-hidden relative bg-bg-base/40 backdrop-blur-xl"
         >
 
