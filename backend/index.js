@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const ytdl = require('yt-dlp-exec');
+const ffmpegPath = require('ffmpeg-static');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -16,7 +17,7 @@ const PORT = process.env.VITE_BACKEND_PORT || 5000;
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use('/downloads', express.static(DOWNLOAD_DIR));
+app.use('/downloads', express.static(DOWNLOAD_DIR, { redirect: false }));
 
 const ensureDownloadDir = async () => {
   try {
@@ -25,10 +26,6 @@ const ensureDownloadDir = async () => {
     console.error('Error creating download directory:', err);
     throw new Error('Could not initialize download directory');
   }
-};
-
-const sanitizeFilename = (filename) => {
-  return filename.replace(/[^a-z0-9_.-]/gi, '_');
 };
 
 const updateYtdl = async () => {
@@ -55,6 +52,28 @@ const updateYtdl = async () => {
 
 const activeJobs = new Map();
 
+const findJobFiles = (prefix) => {
+  try {
+    return fsSync.readdirSync(DOWNLOAD_DIR).filter(file => file.startsWith(prefix));
+  } catch {
+    return [];
+  }
+};
+
+const removeJobFiles = (prefix) => {
+  for (const file of findJobFiles(prefix)) {
+    try { fsSync.unlinkSync(path.join(DOWNLOAD_DIR, file)); } catch {}
+  }
+};
+
+const isTemporaryFile = (file) => /\.(part|ytdl|temp)$/.test(file) || /\.f\d+\./.test(file);
+
+const sendEvent = (job, payload) => {
+  if (job.res) {
+    job.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  }
+};
+
 app.post('/download', (req, res) => {
   const { url } = req.body;
   if (!url) {
@@ -62,13 +81,16 @@ app.post('/download', (req, res) => {
   }
 
   const jobId = Math.random().toString(36).substring(2, 15);
-  const timestamp = Date.now();
-  const filename = sanitizeFilename(`kintaro_downloader_${timestamp}.mp4`);
-  const filepath = path.join(DOWNLOAD_DIR, filename);
+  const prefix = `kintaro_${Date.now()}_`;
 
   const options = {
-    output: filepath,
-    format: 'best',
+    output: path.join(DOWNLOAD_DIR, `${prefix}%(title).80B.%(ext)s`),
+    format: 'bv*+ba/b',
+    formatSort: 'res,vcodec:h264,acodec:m4a',
+    mergeOutputFormat: 'mp4',
+    ffmpegLocation: ffmpegPath,
+    jsRuntimes: `node:${process.execPath}`,
+    newline: true,
     restrictFilenames: true,
     noCacheDir: true,
     noWarnings: true,
@@ -81,68 +103,89 @@ app.post('/download', (req, res) => {
     ]
   };
 
+  const finishJob = (job, payload) => {
+    job.status = payload.status;
+    job.final = payload;
+    sendEvent(job, payload);
+    if (job.res) {
+      job.res.end();
+      job.res = null;
+    }
+    setTimeout(() => activeJobs.delete(jobId), 60000);
+  };
+
   try {
     const subprocess = ytdl.exec(url, options);
+    subprocess.catch(() => {});
 
-    activeJobs.set(jobId, {
+    const job = {
       subprocess,
+      prefix,
       progress: 0,
       status: 'starting',
-      filename,
-      filepath,
+      streams: 1,
+      stream: -1,
+      final: null,
       res: null
-    });
+    };
+    activeJobs.set(jobId, job);
 
+    let buffer = '';
     subprocess.stdout.on('data', (data) => {
-      const output = data.toString();
-      const match = output.match(/\[download\]\s+([\d.]+)%/);
-      if (match) {
-        const prog = parseFloat(match[1]);
-        const job = activeJobs.get(jobId);
-        if (job) {
-          job.progress = prog;
+      buffer += data.toString();
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const formats = line.match(/Downloading \d+ format\(s\): (\S+)/);
+        if (formats) {
+          job.streams = formats[1].split('+').length;
+          continue;
+        }
+
+        if (/^\[download\] Destination:/.test(line)) {
+          job.stream = Math.min(job.stream + 1, job.streams - 1);
+          continue;
+        }
+
+        if (/^\[(Merger|VideoConvertor|FixupM3u8)\]/.test(line)) {
+          job.status = 'processing';
+          job.progress = 100;
+          sendEvent(job, { progress: 100, status: 'processing' });
+          continue;
+        }
+
+        const match = line.match(/^\[download\]\s+([\d.]+)%/);
+        if (match && job.status !== 'processing') {
+          const stream = Math.max(job.stream, 0);
+          const overall = ((stream * 100) + parseFloat(match[1])) / job.streams;
+          job.progress = Math.max(job.progress, Math.min(overall, 100));
           job.status = 'downloading';
-          if (job.res) {
-            job.res.write(`data: ${JSON.stringify({ progress: prog, status: 'downloading' })}\n\n`);
-          }
+          sendEvent(job, { progress: job.progress, status: 'downloading' });
         }
       }
     });
 
     subprocess.on('close', (code) => {
-      const job = activeJobs.get(jobId);
-      if (job) {
-        if (code === 0) {
-          job.status = 'completed';
-          if (job.res) {
-            job.res.write(`data: ${JSON.stringify({ 
-              status: 'completed', 
-              filename: job.filename, 
-              downloadUrl: `/downloads/${encodeURIComponent(job.filename)}` 
-            })}\n\n`);
-            job.res.end();
-          }
-        } else if (job.status !== 'cancelled') {
-          job.status = 'error';
-          if (job.res) {
-            job.res.write(`data: ${JSON.stringify({ status: 'error', error: 'Download failed or unsupported URL' })}\n\n`);
-            job.res.end();
-          }
-        }
-        activeJobs.delete(jobId);
+      if (job.status === 'cancelled') return;
+
+      const finalFile = findJobFiles(prefix).find(file => !isTemporaryFile(file));
+
+      if (code === 0 && finalFile) {
+        finishJob(job, {
+          status: 'completed',
+          filename: finalFile,
+          downloadUrl: `/downloads/${encodeURIComponent(finalFile)}`
+        });
+      } else {
+        removeJobFiles(prefix);
+        finishJob(job, { status: 'error', error: 'Download failed or unsupported URL' });
       }
     });
 
     subprocess.on('error', (err) => {
-      const job = activeJobs.get(jobId);
-      if (job) {
-        job.status = 'error';
-        if (job.res) {
-           job.res.write(`data: ${JSON.stringify({ status: 'error', error: err.message })}\n\n`);
-           job.res.end();
-        }
-        activeJobs.delete(jobId);
-      }
+      if (job.status === 'cancelled' || job.final) return;
+      finishJob(job, { status: 'error', error: err.message });
     });
 
     return res.json({ jobId });
@@ -168,6 +211,11 @@ app.get('/download/progress/:jobId', (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
+  if (job.final) {
+    res.write(`data: ${JSON.stringify(job.final)}\n\n`);
+    return res.end();
+  }
+
   job.res = res;
   res.write(`data: ${JSON.stringify({ progress: job.progress, status: job.status })}\n\n`);
 
@@ -182,7 +230,7 @@ app.post('/download/cancel/:jobId', (req, res) => {
   const { jobId } = req.params;
   const job = activeJobs.get(jobId);
 
-  if (job) {
+  if (job && !job.final) {
     job.status = 'cancelled';
     if (job.res) {
       job.res.write(`data: ${JSON.stringify({ status: 'cancelled' })}\n\n`);
@@ -196,11 +244,7 @@ app.post('/download/cancel/:jobId', (req, res) => {
       console.error('Error killing process', e);
     }
     
-    setTimeout(() => {
-      if (fsSync.existsSync(job.filepath)) {
-        try { fsSync.unlinkSync(job.filepath); } catch(e) {}
-      }
-    }, 1000);
+    setTimeout(() => removeJobFiles(job.prefix), 1000);
     
     activeJobs.delete(jobId);
     return res.json({ success: true });
@@ -214,7 +258,7 @@ app.get('/downloads', async (req, res) => {
     const files = await fs.readdir(DOWNLOAD_DIR);
     const fileData = await Promise.all(
       files
-        .filter(file => file.startsWith('kintaro_'))
+        .filter(file => file.startsWith('kintaro_') && !isTemporaryFile(file))
         .map(async file => {
           const filepath = path.join(DOWNLOAD_DIR, file);
           const stats = await fs.stat(filepath);
@@ -227,6 +271,7 @@ app.get('/downloads', async (req, res) => {
         })
     );
 
+    fileData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return res.json(fileData);
   } catch (error) {
     console.error('Error listing downloads:', error);
@@ -236,7 +281,8 @@ app.get('/downloads', async (req, res) => {
 
 app.delete('/downloads', async (req, res) => {
   try {
-    const files = await fs.readdir(DOWNLOAD_DIR);
+    const busy = [...activeJobs.values()].filter(job => !job.final).map(job => job.prefix);
+    const files = (await fs.readdir(DOWNLOAD_DIR)).filter(file => !busy.some(prefix => file.startsWith(prefix)));
     await Promise.all(
       files.map(file =>
         fs.unlink(path.join(DOWNLOAD_DIR, file))
@@ -256,7 +302,7 @@ app.delete('/downloads', async (req, res) => {
 
 app.delete('/downloads/:filename', async (req, res) => {
   try {
-    const filename = decodeURIComponent(req.params.filename);
+    const filename = path.basename(decodeURIComponent(req.params.filename));
     const filepath = path.join(DOWNLOAD_DIR, filename);
 
     if (!fsSync.existsSync(filepath)) {
