@@ -4,8 +4,6 @@ import {
   CircleAlert,
   CircleCheck,
   FileVideo,
-  Moon,
-  Sun,
   Trash2,
   X
 } from 'lucide-react';
@@ -53,11 +51,7 @@ const formatSize = (bytes) => {
 const formatDate = (value) =>
   new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
-const displayName = (file) => {
-  const match = file.match(/^kintaro_\d+_(.+)\.[^.]+$/);
-  if (match) return match[1].replace(/_/g, ' ');
-  return file.replace(/^kintaro_downloader_/, 'Video ').replace(/\.[^.]+$/, '');
-};
+const displayName = (file) => file.replace(/\.[^.]+$/, '');
 
 const readError = async (response, fallback) => {
   try {
@@ -67,23 +61,6 @@ const readError = async (response, fallback) => {
     return fallback;
   }
 };
-
-function useTheme() {
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
-
-  const toggle = () => {
-    const next = !dark;
-    document.documentElement.classList.toggle('dark', next);
-    setDark(next);
-    try {
-      localStorage.setItem('theme', next ? 'dark' : 'light');
-    } catch (error) {
-      console.warn('Could not save the theme preference', error);
-    }
-  };
-
-  return [dark, toggle];
-}
 
 function IconButton({ label, children, ...props }) {
   return (
@@ -105,7 +82,6 @@ function GithubIcon(props) {
 }
 
 export default function App() {
-  const [dark, toggleTheme] = useTheme();
   const [url, setUrl] = useState('');
   const [job, setJob] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -231,37 +207,41 @@ export default function App() {
 
   return (
     <TooltipProvider>
-      <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-12 px-4 py-12 sm:py-20">
+      <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-12 px-4 py-6 sm:py-10">
         <section className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-start justify-between gap-4">
-              <h1 className="text-2xl font-semibold sm:text-3xl">Download a video</h1>
-              <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <a
-                        href="https://github.com/xkintaro/video-downloader"
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="GitHub"
-                        className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-                      />
-                    }
-                  >
-                    <GithubIcon className="size-4" />
-                  </TooltipTrigger>
-                  <TooltipContent>GitHub</TooltipContent>
-                </Tooltip>
-                <IconButton label={dark ? 'Light theme' : 'Dark theme'} onClick={toggleTheme}>
-                  {dark ? <Sun /> : <Moon />}
-                </IconButton>
-              </div>
+          <div className="relative overflow-hidden rounded-2xl border">
+            <img
+              src="/cover.jpg"
+              alt=""
+              className="h-72 w-full object-cover object-[50%_60%] sm:h-80"
+            />
+            <div className="absolute inset-0 bg-linear-to-t from-background via-background/40 via-30% to-transparent to-60% sm:bg-linear-to-r sm:from-background/95 sm:via-background/55 sm:via-40% sm:to-transparent sm:to-70%" />
+            <div className="absolute top-3 right-3 rounded-lg bg-background/70 p-1 backdrop-blur-sm">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <a
+                      href="https://github.com/xkintaro/video-downloader"
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="GitHub"
+                      className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                    />
+                  }
+                >
+                  <GithubIcon className="size-4" />
+                </TooltipTrigger>
+                <TooltipContent>GitHub</TooltipContent>
+              </Tooltip>
             </div>
-            <p className="text-muted-foreground">
-              Paste a link from YouTube, X, Instagram, TikTok or any other site supported by yt-dlp.
-              The best available quality is saved as MP4.
-            </p>
+            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-5 sm:right-auto sm:max-w-88 sm:p-6">
+              <h1 className="text-2xl font-semibold sm:text-3xl sm:whitespace-nowrap">Download a video</h1>
+              <p className="text-muted-foreground">
+                Paste a link from YouTube, X, Instagram, TikTok or any other site supported by{' '}
+                <span className="whitespace-nowrap">yt-dlp</span>.
+                The best available quality is saved as MP4.
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row">
