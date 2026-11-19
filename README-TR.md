@@ -32,14 +32,13 @@
     <a href="#features">Özellikler</a> •
     <a href="#tech">Teknolojiler</a> •
     <a href="#setup">Kurulum</a> •
+    <a href="#gallery">Galeri</a> •
     <a href="#license">Lisans</a>
   </p>
 
   <br />
   <br />
 </div>
-
-<img src="frontend/public/banner.jpg" width="100%" />
 
 ## <a id="about"></a> 📋 Hakkında
 
@@ -126,6 +125,10 @@ VITE_FRONTEND_PORT=5065
 ```
 
 Backend portunu değiştirirseniz `frontend/.env` dosyasındaki `VITE_FRONTEND_API_URL` değerini de güncelleyin.
+
+## <a id="gallery"></a> 🖼️ Galeri
+
+<img src="frontend/public/banner.jpg" />
 
 ## <a id="license"></a> 📄 Lisans
 

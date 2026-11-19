@@ -32,14 +32,13 @@
     <a href="#features">Features</a> •
     <a href="#tech">Tech</a> •
     <a href="#setup">Setup</a> •
+    <a href="#gallery">Gallery</a> •
     <a href="#license">License</a>
   </p>
 
   <br />
   <br />
 </div>
-
-<img src="frontend/public/banner.jpg" width="100%" />
 
 ## <a id="about"></a> 📋 About
 
@@ -126,6 +125,10 @@ VITE_FRONTEND_PORT=5065
 ```
 
 If you change the backend port, update `VITE_FRONTEND_API_URL` in `frontend/.env` as well.
+
+## <a id="gallery"></a> 🖼️ Gallery
+
+<img src="frontend/public/banner.jpg" />
 
 ## <a id="license"></a> 📄 License
 
