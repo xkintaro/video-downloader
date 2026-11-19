@@ -2,156 +2,134 @@
   <img src="https://img.shields.io/badge/Language-English-blue?style=flat-square&logo=google-translate&logoColor=white" alt="English">
 </a>
 <a href="README-TR.md">
-  <img src="https://img.shields.io/badge/Dil-Türkçe-red?style=flat-square&logo=google-translate&logoColor=white" alt="Türkçe">
+  <img src="https://img.shields.io/badge/Language-Türkçe-red?style=flat-square&logo=google-translate&logoColor=white" alt="Türkçe">
 </a>
 
   <br />
   <br />
 
 <div align="center">
-  <img src="frontend/public/kintaro.png" width="120" height="120" />
+  <img src="frontend/public/profile.png" width="120" height="120" />
   <br />
   <br />
 
   <p>
-    Cyberpunk temalı video indirme aracı
+     Videoları en iyi kalitede MP4 olarak indiren, kendi bilgisayarınızda çalışan bir araç.
   </p>
 
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![shadcn/ui](https://img.shields.io/badge/shadcn/ui-000000?style=for-the-badge&logo=shadcnui&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![yt-dlp](https://img.shields.io/badge/yt--dlp-FF0000?style=for-the-badge&logo=youtube&logoColor=white)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
   <p>
+    <a href="#about">Hakkında</a> •
     <a href="#features">Özellikler</a> •
     <a href="#tech">Teknolojiler</a> •
-    <a href="#installation">Kurulum</a> •
-    <a href="#license">Lisans</a> •
-    <a href="#gallery">Galeri</a>
+    <a href="#setup">Kurulum</a> •
+    <a href="#license">Lisans</a>
   </p>
 
   <br />
   <br />
 </div>
 
-## 📋 Hakkında
+<img src="frontend/public/banner.jpg" width="100%" />
 
-**Kintaro Downloader**, cyberpunk temalı bir arayüze sahip self-hosted bir video indirme aracıdır. [yt-dlp](https://github.com/yt-dlp/yt-dlp) gücünü şık bir React frontend ve Express backend ile sarmalayarak YouTube, TikTok ve yüzlerce diğer platformdan tek tıkla video indirmenizi sağlar.
+## <a id="about"></a> 📋 Hakkında
 
-Tüm indirmeler makinenize yerel olarak kaydedilir — cloud yok, üçüncü taraf sunucular yok. Sadece bir URL yapıştırın, **Initialize** butonuna basın ve video doğrudan yerel arşivinize insin.
+**Video Downloader**, kendi bilgisayarınızda çalışan bir web aracıdır. YouTube, X, Instagram, TikTok veya yt-dlp'nin desteklediği başka bir siteden bir bağlantı yapıştırın, video mevcut en iyi kalitede MP4 dosyası olarak kaydedilsin.
 
-<img src="frontend/public/md/20260304203540024.jpg" width="100%" />
+Backend, en iyi görüntü ve ses akışlarını ayrı ayrı indirip FFmpeg ile birleştirir. Böylece 1080p ve 4K gibi yüksek çözünürlükler, daha düşük kaliteli tek dosya biçimleriyle sınırlı kalmaz. yt-dlp ve FFmpeg, `npm install` ile birlikte kurulur, ayrıca bir şey kurmanız gerekmez. İndirilen videolar yerel bir klasörde tutulur ve sayfada listelenir. Buradan dosyaları tekrar kaydedebilir veya silebilirsiniz.
 
 ## <a id="features"></a> ✨ Özellikler
 
-###  Evrensel Video İndirme
-- yt-dlp aracılığıyla **YouTube, TikTok, Twitter/X, Instagram, Reddit** ve [yüzlercesini daha](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) destekler.
-- Mevcut en iyi kaliteyi otomatik olarak seçer.
-- Kolay sıralama için indirmeler zaman damgalı bir dosya adı ile kaydedilir.
-
-### Yerel Arşiv Yönetimi
-- İndirilen tüm dosyalara entegre **Local Archive** panelinden göz atın.
-- Dosya adlarını, boyutlarını ve indirme tarihlerini bir bakışta görüntüleyin.
-- Tüm arşivi temizlemek için **tek tek silme** veya **Purge All** seçeneği.
-- Herhangi bir dosyayı doğrudan arşiv listesinden yeniden indirin.
-
-### Cyberpunk Arayüzü
-- Neon vurgu renkleriyle **koyu glassmorphism** estetiği.
-- Giriş bölümünde orbital animasyonlu visualizer.
-- Baştan sona pürüzsüz **Framer Motion** geçişleri ve mikro animasyonlar.
-- Tamamen responsive — masaüstü ve mobilde çalışır.
-
-### Otomatik Güncelleme
-- Maksimum platform uyumluluğu sağlamak için yt-dlp binary dosyası her sunucu başlatıldığında **otomatik olarak güncellenir**.
-
-### Self-Hosted ve Gizli
-- Her şey **kendi makinenizde** veya sunucunuzda çalışır. Ağınızdan hiçbir veri çıkmaz.
-- Portlar ve path'ler için basit `.env` konfigürasyonu.
-- Doğrudan kullanıma hazır **Docker** deployment desteği.
+- **Geniş site desteği**: YouTube, X, Instagram, TikTok ve yt-dlp'nin desteklediği diğer pek çok siteden video indirin.
+- **En iyi kalitede MP4**: En iyi görüntü ve ses, video başlığıyla adlandırılan tek bir MP4 dosyasında birleştirilir. Dosyanın her yerde oynatılabilmesi için aynı çözünürlükte H.264 tercih edilir.
+- **Anlık ilerleme**: İndirmeyi tek bir ilerleme çubuğuyla takip edin ve istediğiniz an iptal edin. İptal ettiğinizde yarım kalan dosyalar silinir.
+- **İndirilenler listesi**: Her indirmeyi başlığı, boyutu ve tarihiyle görün. Bir dosyayı tekrar kaydedin, silin veya onay verdikten sonra listenin tamamını temizleyin.
+- **Her zaman güncel**: yt-dlp, backend her başladığında otomatik olarak güncellenir.
 
 ## <a id="tech"></a> 🛠️ Teknolojiler
 
-### Backend
-- **Node.js**: Sunucu için JavaScript runtime.
-- **Express**: REST API endpoint'leri için minimal web framework.
-- **yt-dlp**: Zengin özelliklere sahip command-line video indirici (`yt-dlp-exec` aracılığıyla).
-- **dotenv**: Environment variable yönetimi.
+`React` · `Vite` · `Tailwind CSS` · `shadcn/ui` · `Base UI` · `Lucide React` · `Node.js` · `Express` · `yt-dlp` · `FFmpeg`
 
-### Frontend
-- **React 19**: En son React özelliklerine sahip component tabanlı arayüz.
-- **Vite**: Yıldırım hızında build aracı ve dev server.
-- **Tailwind CSS v4**: Hızlı stil tanımlama için utility-first CSS framework.
-- **Framer Motion**: Üretime hazır animasyon kütüphanesi.
-- **Axios**: Promise tabanlı HTTP client.
-- **React Icons**: React component'leri olarak popüler ikon setleri.
-
-## <a id="installation"></a> 🚀 Kurulum
+## <a id="setup"></a> 🚀 Kurulum
 
 ### Gereksinimler
-- **Node.js** (v18+)
-- **npm** (Node.js ile birlikte gelir)
-- **yt-dlp** sistem PATH'inizde mevcut olmalıdır veya `yt-dlp-exec` paketi bunu otomatik olarak halledecektir.
+
+- **Node.js**
 
 ### Adım Adım Kurulum
 
-1. **Depoyu Klonlayın:**
+1. **Depoyu klonlayın**
+
    ```bash
    git clone https://github.com/xkintaro/video-downloader.git
    cd video-downloader
    ```
 
-2. **Backend Bağımlılıklarını Yükleyin:**
+2. **Bağımlılıkları yükleyin**
+
    ```bash
    cd backend
    npm install
-   ```
-
-3. **Frontend Bağımlılıklarını Yükleyin:**
-   ```bash
    cd ../frontend
    npm install
    ```
 
-4. **Değişkenleri Yapılandırın:**
+   Windows'ta bunun yerine `install-dependencies.bat` dosyasını çalıştırabilirsiniz.
 
-   **Backend** (`backend/.env`):
-   ```env
-   VITE_BACKEND_PORT=5066
-   VITE_DOWNLOADS_DIR=downloads
-   ```
-
-   **Frontend** (`frontend/.env`):
-   ```env
-   VITE_FRONTEND_API_URL=http://localhost:5066
-   VITE_DOWNLOADS_DIR=downloads
-   VITE_FRONTEND_PORT=5065
-   ```
-
-5. **Uygulamayı Başlatın:**
+3. **Backend sunucusunu başlatın**
 
    ```bash
-   # Terminal 1 — Backend
-   cd backend && node index.js
-
-   # Terminal 2 — Frontend
-   cd frontend && npm run dev
+   cd backend
+   node index.js
    ```
 
-6. İndirmeye başlamak için tarayıcınızda `http://localhost:5065` adresini açın.
+4. **Geliştirme sunucusunu başlatın**
 
-## 📄 Lisans <a id="license"></a>
+   Yeni bir terminalde:
 
-Bu proje MIT Lisansı ile lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasını inceleyebilirsiniz.
+   ```bash
+   cd frontend
+   npm run dev
+   ```
 
-## 🖼️ Galeri <a id="gallery"></a>
+Uygulamayı şu adreste açın: [http://localhost:5065](http://localhost:5065).
 
-<img src="frontend/public/md/20260304203540138.jpg" width="100%" />
+### Kullanım
 
-#
+- Windows'ta iki sunucuyu konsol pencereleriyle başlatmak için `run.bat`, arka planda başlatmak için `run-video-downloader.vbs` dosyasını çalıştırın.
+- İndirilen videolar `backend/downloads` klasörüne kaydedilir.
 
-<img src="frontend/public/md/20260304203540238.jpg" width="auto" />
+### Yapılandırma
+
+Portlar ve indirme klasörü `.env` dosyalarından ayarlanır:
+
+```env
+# backend/.env
+VITE_BACKEND_PORT=5066
+VITE_DOWNLOADS_DIR=downloads
+```
+
+```env
+# frontend/.env
+VITE_FRONTEND_API_URL=http://localhost:5066
+VITE_DOWNLOADS_DIR=downloads
+VITE_FRONTEND_PORT=5065
+```
+
+Backend portunu değiştirirseniz `frontend/.env` dosyasındaki `VITE_FRONTEND_API_URL` değerini de güncelleyin.
+
+## <a id="license"></a> 📄 Lisans
+
+Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakabilirsiniz.
 
 #
 
