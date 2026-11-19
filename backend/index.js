@@ -11,6 +11,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const DOWNLOAD_DIR = path.join(__dirname, process.env.VITE_DOWNLOADS_DIR || 'downloads');
+const TEMP_DIR = path.join(DOWNLOAD_DIR, '.tmp');
 
 const app = express();
 const PORT = process.env.VITE_BACKEND_PORT || 5000;
@@ -42,31 +43,46 @@ const updateYtdl = async () => {
   }
 };
 
-(async () => {
+const ready = (async () => {
   if (!fsSync.existsSync(DOWNLOAD_DIR)) {
     await ensureDownloadDir();
   }
 
+  await fs.rm(TEMP_DIR, { recursive: true, force: true });
+
   await updateYtdl();
-})();
+})().catch((err) => console.error('Startup error:', err.message));
 
 const activeJobs = new Map();
 
-const findJobFiles = (prefix) => {
-  try {
-    return fsSync.readdirSync(DOWNLOAD_DIR).filter(file => file.startsWith(prefix));
-  } catch {
-    return [];
-  }
-};
-
-const removeJobFiles = (prefix) => {
-  for (const file of findJobFiles(prefix)) {
-    try { fsSync.unlinkSync(path.join(DOWNLOAD_DIR, file)); } catch {}
-  }
+const removeJobDir = (dir) => {
+  try { fsSync.rmSync(dir, { recursive: true, force: true }); } catch {}
 };
 
 const isTemporaryFile = (file) => /\.(part|ytdl|temp)$/.test(file) || /\.f\d+\./.test(file);
+
+const findFinalFile = (dir) => {
+  try {
+    return fsSync.readdirSync(dir).find(file => !isTemporaryFile(file));
+  } catch {
+    return undefined;
+  }
+};
+
+const uniqueName = (filename) => {
+  const ext = path.extname(filename);
+  const base = path.basename(filename, ext);
+  let candidate = filename;
+  for (let i = 2; fsSync.existsSync(path.join(DOWNLOAD_DIR, candidate)); i++) {
+    candidate = `${base} (${i})${ext}`;
+  }
+  return candidate;
+};
+
+const listFiles = async () => {
+  const entries = await fs.readdir(DOWNLOAD_DIR, { withFileTypes: true });
+  return entries.filter(entry => entry.isFile() && !entry.name.startsWith('.')).map(entry => entry.name);
+};
 
 const sendEvent = (job, payload) => {
   if (job.res) {
@@ -74,24 +90,27 @@ const sendEvent = (job, payload) => {
   }
 };
 
-app.post('/download', (req, res) => {
+app.post('/download', async (req, res) => {
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ error: 'URL cannot be empty' });
   }
 
+  await ready;
+
   const jobId = Math.random().toString(36).substring(2, 15);
-  const prefix = `kintaro_${Date.now()}_`;
+  const dir = path.join(TEMP_DIR, jobId);
+  fsSync.mkdirSync(dir, { recursive: true });
 
   const options = {
-    output: path.join(DOWNLOAD_DIR, `${prefix}%(title).80B.%(ext)s`),
+    output: path.join(dir, '%(title).150B.%(ext)s'),
     format: 'bv*+ba/b',
     formatSort: 'res,vcodec:h264,acodec:m4a',
     mergeOutputFormat: 'mp4',
     ffmpegLocation: ffmpegPath,
     jsRuntimes: `node:${process.execPath}`,
     newline: true,
-    restrictFilenames: true,
+    windowsFilenames: true,
     noCacheDir: true,
     noWarnings: true,
     noCheckCertificates: true,
@@ -120,7 +139,7 @@ app.post('/download', (req, res) => {
 
     const job = {
       subprocess,
-      prefix,
+      dir,
       progress: 0,
       status: 'starting',
       streams: 1,
@@ -169,18 +188,25 @@ app.post('/download', (req, res) => {
     subprocess.on('close', (code) => {
       if (job.status === 'cancelled') return;
 
-      const finalFile = findJobFiles(prefix).find(file => !isTemporaryFile(file));
+      const finalFile = findFinalFile(dir);
 
       if (code === 0 && finalFile) {
-        finishJob(job, {
-          status: 'completed',
-          filename: finalFile,
-          downloadUrl: `/downloads/${encodeURIComponent(finalFile)}`
-        });
+        try {
+          const filename = uniqueName(finalFile);
+          fsSync.renameSync(path.join(dir, finalFile), path.join(DOWNLOAD_DIR, filename));
+          finishJob(job, {
+            status: 'completed',
+            filename,
+            downloadUrl: `/downloads/${encodeURIComponent(filename)}`
+          });
+        } catch (err) {
+          console.error('Error moving download:', err);
+          finishJob(job, { status: 'error', error: 'Could not save the downloaded file' });
+        }
       } else {
-        removeJobFiles(prefix);
         finishJob(job, { status: 'error', error: 'Download failed or unsupported URL' });
       }
+      removeJobDir(dir);
     });
 
     subprocess.on('error', (err) => {
@@ -244,7 +270,7 @@ app.post('/download/cancel/:jobId', (req, res) => {
       console.error('Error killing process', e);
     }
     
-    setTimeout(() => removeJobFiles(job.prefix), 1000);
+    setTimeout(() => removeJobDir(job.dir), 1000);
     
     activeJobs.delete(jobId);
     return res.json({ success: true });
@@ -255,10 +281,9 @@ app.post('/download/cancel/:jobId', (req, res) => {
 
 app.get('/downloads', async (req, res) => {
   try {
-    const files = await fs.readdir(DOWNLOAD_DIR);
+    const files = await listFiles();
     const fileData = await Promise.all(
       files
-        .filter(file => file.startsWith('kintaro_') && !isTemporaryFile(file))
         .map(async file => {
           const filepath = path.join(DOWNLOAD_DIR, file);
           const stats = await fs.stat(filepath);
@@ -281,8 +306,7 @@ app.get('/downloads', async (req, res) => {
 
 app.delete('/downloads', async (req, res) => {
   try {
-    const busy = [...activeJobs.values()].filter(job => !job.final).map(job => job.prefix);
-    const files = (await fs.readdir(DOWNLOAD_DIR)).filter(file => !busy.some(prefix => file.startsWith(prefix)));
+    const files = await listFiles();
     await Promise.all(
       files.map(file =>
         fs.unlink(path.join(DOWNLOAD_DIR, file))
@@ -305,7 +329,7 @@ app.delete('/downloads/:filename', async (req, res) => {
     const filename = path.basename(decodeURIComponent(req.params.filename));
     const filepath = path.join(DOWNLOAD_DIR, filename);
 
-    if (!fsSync.existsSync(filepath)) {
+    if (filename.startsWith('.') || !fsSync.existsSync(filepath) || !fsSync.statSync(filepath).isFile()) {
       return res.status(404).json({ error: 'File not found' });
     }
 
