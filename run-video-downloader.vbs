@@ -1,5 +1,9 @@
 Set WshShell = CreateObject("WScript.Shell")
+Set fso = CreateObject("Scripting.FileSystemObject")
+root = fso.GetParentFolderName(WScript.ScriptFullName)
 
-WshShell.Run "cmd /c cd C:\video-downloader\backend && node index.js", 0, False
+WshShell.CurrentDirectory = root & "\backend"
+WshShell.Run "cmd /c node index.js", 0, False
 
-WshShell.Run "cmd /c cd C:\video-downloader\frontend && npm run dev", 0, False
+WshShell.CurrentDirectory = root & "\frontend"
+WshShell.Run "cmd /c npm run dev", 0, False
